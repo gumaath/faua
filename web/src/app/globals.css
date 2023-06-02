@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  h3 {
+    @apply text-lg;
+  }
+}
+
+.primaryButton {
+  @apply text-zinc-950;
+  @apply bg-yellow-500;
+  @apply rounded-md;
+  @apply px-16;
+  @apply py-3;
+  @apply text-lg;
+}
+
+::selection {
+  @apply bg-yellow-500;
+  @apply text-white;
+}
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 29, 29, 29;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb))
+}

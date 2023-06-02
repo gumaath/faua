@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  user_id          String             @id @default(uuid())
+  user_name        String             @db.VarChar(255)
+  user_cpf         String             @db.VarChar(14)
+  user_email       String             @db.VarChar(255)
+  user_password    String             @db.VarChar(255)
+  user_gender      Gender
+  user_biogender   BioGender
+  user_address     String             @db.VarChar(255)
+  user_birth       DateTime           @db.Date
+  user_attributes  String             @db.LongText
+  created_date     DateTime           @default(now())
+  edited_date      DateTime           @default(now())
+  Institutes_Users Institutes_Users[]
+}
+
+model Intitutes {
+  institute_id         String             @id @default(uuid())
+  institute_name       String             @db.VarChar(255)
+  institute_doc        String             @db.VarChar(18)
+  institute_email      String             @db.VarChar(255)
+  institute_desc       String             @db.LongText
+  institute_password   String             @db.VarChar(255)
+  institute_attributes String             @db.LongText
+  segmentsSegment_id   Segments           @relation(fields: [institute_segment], references: [segment_id])
+  institute_segment    Int
+  created_date         DateTime           @default(now())
+  edited_date          DateTime           @default(now())
+  Institutes_Users     Institutes_Users[]
+}
+
+model Institutes_Users {
+  user        Users     @relation(fields: [userId], references: [user_id])
+  userId      String
+  intitute    Intitutes @relation(fields: [instituteId], references: [institute_id])
+  instituteId String
+
+  @@id([userId, instituteId])
+}
+
+enum BioGender {
+  FEMALE
+  MALE
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  UNDEFINED
+}
+
+model Segments {
+  segment_id   Int         @id @default(autoincrement())
+  segment_name String
+  Intitutes    Intitutes[]
+}
+
+model InstituteAttributes {
+  attribute_id   Int    @id @default(autoincrement())
+  attribute_name String @unique
+  first_person_text String
+  second_person_text String
+}
+
+model UsersAttributes {
+  attribute_id   Int    @id @default(autoincrement())
+  attribute_name String @unique
+  first_person_text String
+  second_person_text String
+
+}
