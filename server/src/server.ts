@@ -4,15 +4,24 @@ import cors from "@fastify/cors";
 
 const app = fastify();
 const prisma = new PrismaClient()
-
 const urls = ["http://localhost:3000"];
 
+// CORS
 app.register(cors, {
   origin: urls,
   methods: ['GET', 'POST'],
   credentials: true
 })
 
+// Users
+
+// Counter
+app.get('/users/count', async (request: FastifyRequest, reply: FastifyReply) => {
+  const count =  await prisma.users.count()
+  return reply.send(count);
+})
+
+// Attributes
 app.get('/users/attributes', async () => {
   const attributes =  await prisma.usersAttributes.findMany()
   return attributes;
@@ -32,10 +41,20 @@ app.get('/users/attributes/count', async (request: FastifyRequest, reply: Fastif
   return reply.send(count);
 })
 
+// Institutes
+
+// Counter
+app.get('/institutes/count', async (request: FastifyRequest, reply: FastifyReply) => {
+  const count =  await prisma.intitutes.count()
+  return reply.send(count);
+})
+
+// Attributes
 app.get('/institutes/attributes', async (request: FastifyRequest, reply: FastifyReply) => {
   const attributes =  await prisma.instituteAttributes.findMany()
   return reply.send(attributes);
 })
+
 
 app.listen({
   port: 3333,
