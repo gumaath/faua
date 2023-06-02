@@ -5,7 +5,7 @@ import MainContent from "@/components/MainContent/page";
 export default function Home() {
   return (
     <div>
-      <div className="h-screen select-text">
+      <div className="min-h-screen select-text">
         <Header/>
         <MainContent/>
       </div>

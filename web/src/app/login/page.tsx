@@ -2,7 +2,7 @@ import Header from "@/components/Header/page";
 import Footer from "@/components/Footer/page";
 import FormLogin from "@/components/FormLogin/page";
 
-export default function Home() {
+export default function Login() {
   return (
     <div>
       <div className="min-h-screen select-text">

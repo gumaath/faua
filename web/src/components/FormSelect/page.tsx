@@ -12,7 +12,7 @@ export default function FormSelect({ value, onChange, label, name, id, options, 
       <select value={value} onChange={onChange} className={`rounded-md outline-none text-black bg-zinc-100 py-2 px-3 ${width ? `min-w-full` : 'min-w-[260px]'}`} id={id} name={name}>
       <option value="0">Selecione...</option>
           {options.map((opt) => (
-            <option value={opt.sigla?opt.sigla:opt.nome}>{opt.nome}</option>
+            <option key={opt.nome} value={opt.sigla?opt.sigla:opt.nome}>{opt.nome}</option>
           ))}
       </select>
     </div>

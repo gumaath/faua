@@ -4,6 +4,7 @@ import FormInput from '../FormInput/page';
 import axios from "axios";
 import { ChangeEvent, useEffect, useState } from "react";
 import FormSelect from '../FormSelect/page';
+import AttributesLister from '../AttributesLister/page';
 
 type IBGEUFResponse = {
   sigla: string;
@@ -13,10 +14,20 @@ type IBGECITYResponse = {
   id: number;
   nome: string;
 };
+type TypeBlood = {
+  sigla: string;
+  nome: string;
+};
 
 export default function FormRegister() {
   const [ufs, setUfs] = useState<IBGEUFResponse[]>([]);
   const [cities, setCities] = useState<IBGECITYResponse[]>([]);
+  const [typebloods, setTypeBloods] = useState<TypeBlood[]>([]);;
+  const [selectedTypeblood, setSelectedTypeBlood] = useState("0");
+  const [biogenders, setBioGenders] = useState<TypeBlood[]>([]);
+  const [selectedBioGender, setSelectedBioGender] = useState("0");
+  const [genders, setGenders] = useState<TypeBlood[]>([]);
+  const [selectedGender, setSelectedGender] = useState("0");
   const [selectedUf, setSelectedUf] = useState("0");
   const [selectedCity, setSelectedCity] = useState("0");
   useEffect(() => {
@@ -40,9 +51,54 @@ export default function FormRegister() {
       });
   }, [selectedUf]);
 
+  useEffect(() => {
+    const typeBloods = [
+      { sigla: 'O-', nome: 'O-' },
+      { sigla: 'O+', nome: 'O+' },
+      { sigla: 'A-', nome: 'A-' },
+      { sigla: 'A+', nome: 'A+' },
+      { sigla: 'B-', nome: 'B-' },
+      { sigla: 'B+', nome: 'B+' },
+      { sigla: 'AB+', nome: 'AB+' },
+      { sigla: 'AB-', nome: 'AB-' },
+    ]
+  
+    setTypeBloods(typeBloods);
+
+    const genders = [
+      { sigla: 'FEMALE', nome: 'Feminino' },
+      { sigla: 'MALE', nome: 'Masculino' },
+      { sigla: 'UNDEFINED', nome: 'Prefiro não dizer' },
+    ]
+
+    setGenders(genders);
+
+    const biogenders = [
+      { sigla: 'FEMALE', nome: 'Feminino' },
+      { sigla: 'MALE', nome: 'Masculino' },
+    ]
+
+    setBioGenders(biogenders);
+  }, [])
+
   function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
     const uf = event.target.value;
     setSelectedUf(uf);
+  }
+
+  function handleSelectTypeBlood(event: ChangeEvent<HTMLSelectElement>) {
+    const typeblood = event.target.value;
+    setSelectedTypeBlood(typeblood);
+  }
+
+  function handleSelectBioGender(event: ChangeEvent<HTMLSelectElement>) {
+    const biogender = event.target.value;
+    setSelectedBioGender(biogender);
+  }
+
+  function handleSelectGender(event: ChangeEvent<HTMLSelectElement>) {
+    const gender = event.target.value;
+    setSelectedGender(gender);
   }
 
   function handleSelectCity(event: ChangeEvent<HTMLSelectElement>) {
@@ -50,11 +106,14 @@ export default function FormRegister() {
     setSelectedCity(city);
   }
 
+ 
+
   return (
     <div className='justify-center items-center mt-[15%] bg-white rounded p-6 m-6 text-black'>
+      <h1 className='text-center mb-4'>Crie sua conta</h1>
       <form action="" className='grid grid-cols-3 gap-4'>
         <div>
-          <FormInput type={'text'} label={'Nome completo'} name={'name'} id={'name'} placeholder='Ex: João da Silva'/>
+          <FormInput type={'text'} label={'Nome completo'} name={'name'} id={'name'} placeholder='Ex: João da Silva' />
           <FormInput type={'email'} label={'Endereço de e-mail'} name={'email'} id={'email'} placeholder='Ex: seufulano@email.com' />
           <FormInput type={'cpf'} label={'CPF'} name={'cpf'} id={'cpf'} placeholder='Ex: 123.456.789-10' />
           <div className='flex w-full gap-2'>
@@ -64,11 +123,17 @@ export default function FormRegister() {
           <FormInput type={'text'} label={'Endereço residencial'} name={'name'} id={'name'} placeholder='R. Flor das Rosas, 123' />
         </div>
         <div>
-          <FormInput type={'text'} label={'Seu nome completo'} name={'name'} id={'name'} />
-          <FormInput type={'text'} label={'Seu nome completo'} name={'name'} id={'name'} />
-          <FormInput type={'text'} label={'Seu nome completo'} name={'name'} id={'name'} />
-          <FormInput type={'text'} label={'Seu nome completo'} name={'name'} id={'name'} />
-          <FormInput type={'text'} label={'Seu nome completo'} name={'name'} id={'name'} />
+          <div className='flex w-full gap-2'>
+            <FormInput type={'date'} label={'Data de Nascimento'} name={'birthdate'} id={'datebirth'} width={true} />
+            <FormSelect value={selectedTypeblood} onChange={handleSelectTypeBlood} label={'Tipo sanguíneo'} name={'typeblood'} id={'typeblood'} width={true} options={typebloods} />
+          </div>
+          <div className='flex w-full gap-2'>
+          <FormSelect value={selectedBioGender} onChange={handleSelectBioGender} label={'Gênero biológico'} name={'biogender'} id={'biogender'} width={true} options={biogenders} />
+            <FormSelect value={selectedGender} onChange={handleSelectGender} label={'Gênero'} name={'gender'} id={'gender'} width={true} options={genders} />
+          </div>
+        </div>
+        <div>
+          <AttributesLister type='users' />
         </div>
       </form>
     </div>
