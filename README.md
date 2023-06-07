@@ -1,6 +1,7 @@
 # Todo
 - [X] Finalizar tela de cadastro
 - [ ] Criar validações dos forms
+- [ ] Criar perfil do usuário/instituição
 - [X] Criar API de Autenticação (JWT e BCrypt) + CRUD para salvar no banco
 - [ ] Criar tela principal
 - [X] Criar API para consulta de instituições
