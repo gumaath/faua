@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent, ChangeEventHandler } from "react";
 import axios from "axios";
 
 interface Attribute {
@@ -8,15 +8,13 @@ interface Attribute {
   second_person_text: string
 }
 
-export default function AttributesLister({ type }: { type: string }) {
+export default function AttributesLister({ type, onChange, checkeds }: { type: string, onChange: ChangeEventHandler, checkeds: { [key: string]: string } }) {
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [pageNumber, setPageNumber] = useState(0);
   const [isCounted, setIsCounted] = useState(false);
   const [maxPage, setMaxPage] = useState(0);
 
   function handlePrevClick() {
-    console.log(pageNumber);
-    console.log(maxPage);
     if (pageNumber <= 0) return 0;
     setPageNumber(pageNumber - 1);
   }
@@ -49,13 +47,14 @@ export default function AttributesLister({ type }: { type: string }) {
       });
   }, [pageNumber]);
 
+
   return (
     <div className="flex flex-col mb-3">
       <label className='text-xs text-zinc-500 pl-[2px] mb-[2px]'>Atributos</label>
       <div className="rounded-md bg-zinc-100 p-2 text-sm text-zinc-500">
         {attributes.map((attr) => (
           <div className="flex items-center py-1 px-2 mb-1 border border-gray-300 rounded" key={attr.attribute_id}>
-            <input className="mr-1 " type="checkbox" value={attr.attribute_id} name={`attr_${attr.attribute_id}`} id={`attr_${attr.attribute_id}`} />
+            <input className="mr-1 " type="checkbox" checked={checkeds[`attr_${attr.attribute_id}` as keyof typeof checkeds] ? true : false} onChange={onChange} value={attr.attribute_id} name={`attr_${attr.attribute_id}`} id={`attr_${attr.attribute_id}`} />
             <label htmlFor={`attr_${attr.attribute_id}`}>{attr.first_person_text}</label>
           </div>
         ))}

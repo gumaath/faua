@@ -21,6 +21,7 @@ model Users {
   user_address     String             @db.VarChar(255)
   user_birth       DateTime           @db.Date
   user_attributes  String             @db.LongText
+  user_role        Role               @default(USER)
   created_date     DateTime           @default(now())
   edited_date      DateTime           @default(now())
   Institutes_Users Institutes_Users[]
@@ -30,12 +31,14 @@ model Intitutes {
   institute_id         String             @id @default(uuid())
   institute_name       String             @db.VarChar(255)
   institute_doc        String             @db.VarChar(18)
+  institute_address     String            @db.VarChar(255)
   institute_email      String             @db.VarChar(255)
   institute_desc       String             @db.LongText
   institute_password   String             @db.VarChar(255)
   institute_attributes String             @db.LongText
   segmentsSegment_id   Segments           @relation(fields: [institute_segment], references: [segment_id])
   institute_segment    Int
+  institute_role       Role               @default(INSTITUTE)
   created_date         DateTime           @default(now())
   edited_date          DateTime           @default(now())
   Institutes_Users     Institutes_Users[]
@@ -61,6 +64,12 @@ enum Gender {
   UNDEFINED
 }
 
+enum Role {
+  ADMIN
+  USER
+  INSTITUTE
+}
+
 model Segments {
   segment_id   Int         @id @default(autoincrement())
   segment_name String
@@ -68,16 +77,15 @@ model Segments {
 }
 
 model InstituteAttributes {
-  attribute_id   Int    @id @default(autoincrement())
-  attribute_name String @unique
-  first_person_text String
+  attribute_id       Int    @id @default(autoincrement())
+  attribute_name     String @unique
+  first_person_text  String
   second_person_text String
 }
 
 model UsersAttributes {
-  attribute_id   Int    @id @default(autoincrement())
-  attribute_name String @unique
-  first_person_text String
+  attribute_id       Int    @id @default(autoincrement())
+  attribute_name     String @unique
+  first_person_text  String
   second_person_text String
-
 }

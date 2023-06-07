@@ -54,8 +54,8 @@ export default function MainContent() {
       </motion.div>
       <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", duration: 0.8, delay: 0.8 }} className="flex flex-col mb-20 gap-2">
-        <Link href="/register"><Button title="Estou pronto!"/></Link>
-        <Link href="/teste" className="underline text-zinc-600 hover:text-zinc-500">Quero ter minha instituição aqui</Link>
+        <Link href="/register/user"><Button title="Estou pronto!"/></Link>
+        <Link href="/register/institute" className="underline text-zinc-600 hover:text-zinc-500">Quero ter minha instituição aqui</Link>
       </motion.div>
     </div>
   )
