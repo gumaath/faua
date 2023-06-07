@@ -1,7 +1,8 @@
 # Todo
-- [ ] Finalizar tela de cadastro
-- [ ] Criar API de Autenticação (JWT e BCrypt) + CRUD para salvar no banco
+- [ X ] Finalizar tela de cadastro
+- [ ] Criar validações dos forms
+- [ X ] Criar API de Autenticação (JWT e BCrypt) + CRUD para salvar no banco
 - [ ] Criar tela principal
-- [ ] Criar API para consulta de instituições
+- [ X ] Criar API para consulta de instituições
 - [ ] Colocar favicon
 - [ ] Começar projeto mobile
