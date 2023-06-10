@@ -82,6 +82,35 @@ app.post('/users/checkemail/', async (request: FastifyRequest, reply: FastifyRep
   }
 })
 
+// Check Email
+app.post('/users/getuser/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  const user = await prisma.users.findFirst({
+    where: {
+      user_email: {
+        equals: requestBody.email
+      }
+    },
+    select: {
+      user_address: true,
+      user_attributes: true,
+      user_biogender: true,
+      user_birth: true,
+      user_city: true,
+      user_cpf: true,
+      user_email: true,
+      user_gender: true,
+      user_name: true,
+      user_uf: true,
+    }
+  });
+  if (user) {
+    return reply.send(user).status(200);
+  } else {
+    return reply.send(false).status(200);
+  }
+})
+
 // Attributes
 app.get('/users/attributes', async (request: FastifyRequest, reply: FastifyReply) => {
   const attributes = await prisma.usersAttributes.findMany()

@@ -6,23 +6,24 @@ import Footer from "@/components/Footer/page";
 import axios from "axios";
 import { getCookie } from 'cookies-next';
 import { useRouter } from 'next/navigation'
+import FormProfile from "@/components/FormProfile/page";
 
 export default function Main() {
   const router = useRouter()
 
   const [userData, setUserData] = useState<{ email: string } | null>(null);
-  const [isFetched, setIsFetched] = useState(false); 
+  const [userFetch, setUserFetch] = useState([]);
+  const [isFetched, setIsFetched] = useState(false);
   const token = getCookie('authorization');
 
   useEffect(() => {
     axios({
       method: 'get',
       url: 'http://localhost:3333/verify/',
-      headers: {'authorization': token},
+      headers: { 'authorization': token },
     })
-      .then((response) => {              
+      .then((response) => {
         if (response.data.status == '1') {
-          setIsFetched(true);
           setUserData(response.data);
         } else {
           router.push('/login')
@@ -33,11 +34,31 @@ export default function Main() {
       });
   }, []);
 
+  useEffect(() => {
+    if (userData?.email) {
+      axios.post(
+        'http://localhost:3333/users/getuser/', userData?.email, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((response) => {
+          if (response) {
+            setUserFetch(response.data);
+            setIsFetched(true);
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    }
+  }, [userData]);
+
   return (
     <div>
       <div className="min-h-screen select-text">
         <Header />
-        <div>{userData !== null && isFetched ? userData.email : "Loading..."}</div>
+        {isFetched && <FormProfile data={userFetch} />}
       </div>
       <Footer />
     </div>

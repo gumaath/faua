@@ -1,6 +1,6 @@
 'use client'
 
-import FormInput from "../FormInput/page";
+import FormInput from '../FormInput/page';
 import axios from "axios";
 import { ChangeEvent, useEffect, useState } from "react";
 import FormSelect from '../FormSelect/page';
@@ -19,24 +19,31 @@ type IBGECITYResponse = {
   id: number;
   nome: string;
 };
+type TypeBlood = {
+  sigla: string;
+  nome: string;
+};
 
-export default function FormRegisterInstitute() {
+export default function FormProfile({ data }: { data: any }) {
   const router = useRouter()
-  
-  const [valueName, setValueName] = useState("");
-  const [valueDesc, setValueDesc] = useState("");
-  const [valueEmail, setValueEmail] = useState("");
-  const [valueCpf, setValueCpf] = useState("");
+
+  const [valueName, setValueName] = useState(data.user_name);
+  const [valueEmail, setValueEmail] = useState(data.user_email);
+  const [valueCpf, setValueCpf] = useState(data.user_cpf);
   const [valuePass, setValuePass] = useState("");
-  const [valueAddress, setValueAddress] = useState("");
+  const [valueAddress, setValueAddress] = useState(data.user_address);
+  const [valueBirth, setValueBirth] = useState(new Date(data.user_birth).toISOString().split("T")[0]);
   const [ufs, setUfs] = useState<IBGEUFResponse[]>([]);
   const [cities, setCities] = useState<IBGECITYResponse[]>([]);
-  const [selectedUf, setSelectedUf] = useState("0");
-  const [selectedCity, setSelectedCity] = useState("0");
-  const [isCnpj, setIsCnpj] = useState(false);
-  const [segments, setSegments] = useState([]);
-  const [valueSegment, setSegment] = useState("");
-
+  const [typebloods, setTypeBloods] = useState<TypeBlood[]>([]);;
+  const [selectedTypeblood, setSelectedTypeBlood] = useState(data.user_typeblood);
+  const [biogenders, setBioGenders] = useState<TypeBlood[]>([]);
+  const [selectedBioGender, setSelectedBioGender] = useState(data.user_biogender);
+  const [genders, setGenders] = useState<TypeBlood[]>([]);
+  const [selectedGender, setSelectedGender] = useState(data.user_gender);
+  const [selectedUf, setSelectedUf] = useState(data.user_uf);
+  const [selectedCity, setSelectedCity] = useState(data.user_city);
+  const [isChanged, setChanged] = useState(false);
   useEffect(() => {
     if (selectedUf === "0") {
       return;
@@ -59,18 +66,47 @@ export default function FormRegisterInstitute() {
   }, []);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3333/institutes/segments")
-      .then((response) => {
-        const data = response.data;
-        const segments = data.map(({ segment_id, segment_name }: { segment_id: number; segment_name: string }) => ({
-          sigla: segment_id,
-          nome: segment_name,
-        }));
-        setSegments(segments);
-      });
-  }, []);
+    const typeBloods = [
+      { sigla: 'O-', nome: 'O-' },
+      { sigla: 'O+', nome: 'O+' },
+      { sigla: 'A-', nome: 'A-' },
+      { sigla: 'A+', nome: 'A+' },
+      { sigla: 'B-', nome: 'B-' },
+      { sigla: 'B+', nome: 'B+' },
+      { sigla: 'AB+', nome: 'AB+' },
+      { sigla: 'AB-', nome: 'AB-' },
+    ]
 
+    setTypeBloods(typeBloods);
+
+    const genders = [
+      { sigla: 'FEMALE', nome: 'Feminino' },
+      { sigla: 'MALE', nome: 'Masculino' },
+      { sigla: 'UNDEFINED', nome: 'Prefiro não dizer' },
+    ]
+
+    setGenders(genders);
+
+    const biogenders = [
+      { sigla: 'FEMALE', nome: 'Feminino' },
+      { sigla: 'MALE', nome: 'Masculino' },
+    ]
+
+    setBioGenders(biogenders);
+
+    setValue('name', data.user_name);
+    setValue('email', data.user_email);
+    setValue('cpf', data.user_cpf);
+    setValue('address', data.user_address);
+    setValue('birthdate', data.user_birth);
+    setValue('uf', data.user_uf);
+    setValue('typeblood', data.user_typeblood);
+    setValue('biogender', data.user_biogender);
+    setValue('city', data.user_city);
+    setValue('gender', data.user_gender);
+    setValue('attributes', data.user_attributes);
+
+  }, [])
 
   const checkEmailExists = async (email: string) => {
     try {
@@ -97,9 +133,6 @@ export default function FormRegisterInstitute() {
           return true; // Proceed with validation if there's an error in checking email existence
         }
       }),
-    desc: Yup.string()
-      .required('Descrição obrigatória')
-      .min(8, 'Sua descrição deve ser maior'),
     cpf: Yup.string().required('CPF obrigatório'),
     password: Yup.string()
       .required('Senha é obrigatória')
@@ -113,13 +146,16 @@ export default function FormRegisterInstitute() {
     address: Yup.string()
       .required('Endereço obrigatório')
       .min(8, 'Seu endereço deve ser maior'),
+    birthdate: Yup.string().required('Data de nascimento obrigatório'),
+    typeblood: Yup.string().required('Tipo sanguíneo obrigatório').notOneOf(['0'], 'Tipo sanguíneo obrigatório'),
+    biogender: Yup.string().required('Sexo biológico obrigatório').notOneOf(['0'], 'Sexo biológico obrigatório'),
+    gender: Yup.string().required('Sexo obrigatório').notOneOf(['0'], 'Sexo obrigatório'),
     attributes: Yup.object().test('at-least-one', 'Selecione pelo menos um atributo', (obj) => {
       return Object.values(obj).some((value) => Boolean(value));
     }),
-    segment: Yup.string().required('Segmento obrigatório').notOneOf(['0'], 'Segmento obrigatório'),
   });
 
-  const { register, handleSubmit, control, formState, setValue } = useForm({
+  const { reset, handleSubmit, control, formState, setValue } = useForm({
     resolver: yupResolver(validationSchema),
   });
 
@@ -128,20 +164,22 @@ export default function FormRegisterInstitute() {
   const onSubmit: SubmitHandler<any> = async (
     e: React.FormEvent<HTMLFormElement>
   ): Promise<void> => {
-    
+
     axios({
       method: 'post',
-      url: 'http://localhost:3333/sendforminstitute/',
+      url: 'http://localhost:3333/sendformuser/:id',
       data: {
         name: valueName,
         email: valueEmail,
         cpf: valueCpf,
         password: valuePass,
-        desc: valueDesc,
-        segment: parseInt(valueSegment),
         uf: selectedUf,
         city: selectedCity,
         address: valueAddress,
+        birth: valueBirth,
+        typeblood: selectedTypeblood,
+        biogender: selectedBioGender,
+        gender: selectedGender,
         attributes: inputValues,
       }
     }).then((response) => {
@@ -150,69 +188,109 @@ export default function FormRegisterInstitute() {
     })
   };
 
-  function handleName(event: ChangeEvent<HTMLSelectElement>) {
+  function handleName(event: ChangeEvent<HTMLInputElement>) {
     const name = event.target.value;
     setValueName(name);
     setValue('name', name);
   }
 
-  function handleDesc(event: ChangeEvent<HTMLSelectElement>) {
-    const desc = event.target.value;
-    setValueDesc(desc);
-    setValue('desc', desc);
-  }
-
-  function handleEmail(event: ChangeEvent<HTMLSelectElement>) {
+  function handleEmail(event: ChangeEvent<HTMLInputElement>) {
     const email = event.target.value;
     setValueEmail(email);
     setValue('email', email);
+
+    if (email !== data.user_email) {
+      setChanged(true);
+    }
   }
 
-  function handlePassword(event: ChangeEvent<HTMLSelectElement>) {
+  function handlePassword(event: ChangeEvent<HTMLInputElement>) {
     const pass = event.target.value;
     setValuePass(pass);
     setValue('password', pass);
   }
 
-  function handleCpf(event: ChangeEvent<HTMLSelectElement>) {
+  function handleCpf(event: ChangeEvent<HTMLInputElement>) {
     const cpf = event.target.value;
     setValueCpf(cpf);
     setValue('cpf', cpf);
 
-    const cpfNumbers = cpf.replace(/\D/g, "");
-
-    if (cpfNumbers.length > 11) {
-      setIsCnpj(true);
-    } else {
-      setIsCnpj(false);
+    if (cpf !== data.user_cpf) {
+      setChanged(true);
     }
   }
 
-  function handleAddress(event: ChangeEvent<HTMLSelectElement>) {
+  function handleAddress(event: ChangeEvent<HTMLInputElement>) {
     const address = event.target.value;
     setValueAddress(address);
     setValue('address', address);
+
+    if (address !== data.user_address) {
+      setChanged(true);
+    }
+  }
+
+  function handleBirth(event: ChangeEvent<HTMLInputElement>) {
+    const birth = event.target.value;
+    setValueBirth(birth);
+    setValue('birthdate', birth);
+
+    if (birth !== data.user_birth) {
+      setChanged(true);
+    }
   }
 
   function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
     const uf = event.target.value;
     setSelectedUf(uf);
     setValue('uf', uf);
+
+    if (uf !== data.user_uf) {
+      setChanged(true);
+    }
+  }
+
+  function handleSelectTypeBlood(event: ChangeEvent<HTMLSelectElement>) {
+    const typeblood = event.target.value;
+    setSelectedTypeBlood(typeblood);
+    setValue('typeblood', typeblood);
+
+    if (typeblood !== data.user_typeblood) {
+      setChanged(true);
+    }
+  }
+
+  function handleSelectBioGender(event: ChangeEvent<HTMLSelectElement>) {
+    const biogender = event.target.value;
+    setSelectedBioGender(biogender);
+    setValue('biogender', biogender);
+
+    if (biogender !== data.user_biogender) {
+      setChanged(true);
+    }
+  }
+
+  function handleSelectGender(event: ChangeEvent<HTMLSelectElement>) {
+    const gender = event.target.value;
+    setSelectedGender(gender);
+    setValue('gender', gender);
+
+    if (gender !== data.user_gender) {
+      setChanged(true);
+    }
   }
 
   function handleSelectCity(event: ChangeEvent<HTMLSelectElement>) {
     const city = event.target.value;
     setSelectedCity(city);
     setValue('city', city);
+
+    if (city !== data.user_city) {
+      setChanged(true);
+    }
   }
 
-  function handleSegment(event: ChangeEvent<HTMLSelectElement>) {
-    const segment = event.target.value;
-    setSegment(segment);
-    setValue('segment', segment);
-  }
-
-  const [inputValues, setInputValues] = useState<{ [key: string]: string }>({});
+  const [inputValues, setInputValues] = useState<{ [key: string]: string }>(JSON.parse(data.user_attributes));
 
   useEffect(() => {
     setValue('attributes', inputValues);
@@ -236,9 +314,9 @@ export default function FormRegisterInstitute() {
   };
 
   return (
-    <div className='justify-center items-center bg-white rounded p-6 m-6 text-black'>
-      <h1 className='text-center mb-4'>Crie sua conta</h1>
-      <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-2 gap-4'>
+    <div className='bg-white rounded p-6 m-6 text-black'>
+      <h1 className='text-center mb-4'>Seu perfil</h1>
+      <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-3 gap-4'>
         <div>
           <Controller
             name="name"
@@ -250,7 +328,7 @@ export default function FormRegisterInstitute() {
                 value={valueName}
                 onChange={handleName}
                 error={errors.name?.message}
-                label={'Nome da instituição'}
+                label={'Nome completo'}
                 id={'name'}
                 placeholder='Ex: João da Silva'
               />
@@ -279,44 +357,12 @@ export default function FormRegisterInstitute() {
               <FormInput
                 type={'text'}
                 value={valueCpf}
-                mask={isCnpj ? "99.999.999/9999-99" : "999.999.999-99?"}
-                formatChars={{ "9": "[0-9]", "t": "[0-9\-]", "?": "[0-9 ]" }}
-                maskChar={null}
+                mask={'999.999.999-99'}
                 onChange={handleCpf}
                 error={errors.cpf?.message}
-                label={'CPF/CNPJ'}
+                label={'CPF'}
                 id={'cpf'}
                 placeholder='Ex: 123.456.789-10' />
-            )}
-          />
-          <Controller
-            name="desc"
-            control={control}
-            defaultValue=""
-            render={() => (
-              <FormInput
-                type={'text'}
-                value={valueDesc}
-                onChange={handleDesc}
-                error={errors.desc?.message}
-                label={'Descrição da instituição'}
-                id={'desc'}
-                placeholder='Descreva a instituição'
-              />
-            )}
-          />
-          <Controller
-            name="segment"
-            control={control}
-            defaultValue=""
-            render={() => (
-              <FormSelect
-                value={valueSegment}
-                onChange={handleSegment}
-                error={errors.segment?.message}
-                label={'Segmento'}
-                id={'segment'}
-                options={segments} />
             )}
           />
           <Controller
@@ -371,7 +417,7 @@ export default function FormRegisterInstitute() {
             defaultValue=""
             render={() => (
               <FormInput type={'text'}
-                label={'Endereço da instituição'}
+                label={'Endereço residencial'}
                 value={valueAddress}
                 onChange={handleAddress}
                 error={errors.address?.message}
@@ -382,17 +428,86 @@ export default function FormRegisterInstitute() {
 
         </div>
         <div>
+          <div className='flex w-full gap-2'>
+            <Controller
+              name="birthdate"
+              control={control}
+              defaultValue=""
+              render={() => (
+                <FormInput
+                  type={'date'}
+                  value={valueBirth}
+                  onChange={handleBirth}
+                  error={errors.birthdate?.message}
+                  label={'Data de Nascimento'}
+                  id={'datebirth'}
+                  width={true} />
+              )}
+            />
+            <Controller
+              name="typeblood"
+              control={control}
+              defaultValue=""
+              render={() => (
+                <FormSelect
+                  value={selectedTypeblood}
+                  onChange={handleSelectTypeBlood}
+                  label={'Tipo sanguíneo'}
+                  error={errors.typeblood?.message}
+                  id={'typeblood'}
+                  width={true}
+                  options={typebloods} />
+              )}
+            />
+          </div>
+          <div className='flex w-full gap-2'>
+            <Controller
+              name="biogender"
+              control={control}
+              defaultValue=""
+              render={() => (
+                <FormSelect
+                  value={selectedBioGender}
+                  onChange={handleSelectBioGender}
+                  error={errors.biogender?.message}
+                  label={'Gênero biológico'}
+                  id={'biogender'}
+                  width={true}
+                  options={biogenders} />
+              )}
+            />
+            <Controller
+              name="gender"
+              control={control}
+              defaultValue=""
+              render={() => (
+                <FormSelect
+                  value={selectedGender}
+                  onChange={handleSelectGender}
+                  error={errors.gender?.message}
+                  label={'Gênero'}
+                  id={'gender'}
+                  width={true}
+                  options={genders} />
+              )}
+            />
+          </div>
+        </div>
+        <div>
           <Controller
             name="attributes"
             control={control}
             defaultValue=""
             render={() => (
-              <AttributesLister error={errors.attributes?.message} onChange={handleChangeAttributes} checkeds={inputValues} type='institutes' />
+              <AttributesLister error={errors.attributes?.message} onChange={handleChangeAttributes} checkeds={inputValues} type='users' />
             )}
           />
         </div>
         <div></div>
-        <div className='flex justify-end'><Button title={'Cadastrar'} /></div>
+        <div></div>
+        <div className='flex justify-end'>
+          <Button title={'Salvar alterações'} disabled={!isChanged && true} />
+        </div>
       </form>
     </div>
   )

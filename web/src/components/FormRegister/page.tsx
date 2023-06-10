@@ -264,7 +264,7 @@ export default function FormRegister() {
   };
 
   return (
-    <div className='justify-center items-center mt-[15%] bg-white rounded p-6 m-6 text-black'>
+    <div className='justify-center items-center bg-white rounded p-6 m-6 text-black'>
       <h1 className='text-center mb-4'>Crie sua conta</h1>
       <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-3 gap-4'>
         <div>

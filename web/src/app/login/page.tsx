@@ -11,7 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
 export default function Login() {
   const [searchParams] = useSearchParams();
   if (typeof searchParams !== 'undefined' && searchParams[1] === 'success') {
-    toast("Sua conta foi criada!", {
+    toast("✅ Sua conta foi criada com sucesso!", {
       theme: "colored",
     });
   }
