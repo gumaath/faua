@@ -7,7 +7,9 @@
 - [X] Criar API para consulta de instituições
 - [X] Colocar favicon
 - [X] Criar páginas de apoio
+- [X] Começar projeto mobile
 - [ ] Criar tela principal usuários (candidatar)
 - [ ] Criar tela principal instituição (ver perfis de voluntários)
 - [ ] Fazer vídeo de apresentação
-- [ ] Começar projeto mobile
+- [ ] Finalizar mobile
+- [ ] Finalizar web
