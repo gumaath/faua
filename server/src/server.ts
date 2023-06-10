@@ -6,6 +6,8 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import dotenv from 'dotenv'
 
 interface RequestBody {
+  typeblood: any;
+  id?: string;
   name: string;
   cpf: string;
   email: string;
@@ -66,7 +68,7 @@ app.get('/users/count', async (request: FastifyRequest, reply: FastifyReply) => 
 })
 
 // Check Email
-app.post('/users/checkemail/', async (request: FastifyRequest, reply: FastifyReply) => {
+app.post('/checkemail/', async (request: FastifyRequest, reply: FastifyReply) => {
   const requestBody = request.body as RequestBody;
   const user = await prisma.users.findFirst({
     where: {
@@ -75,14 +77,21 @@ app.post('/users/checkemail/', async (request: FastifyRequest, reply: FastifyRep
       }
     }
   });
-  if (user) {
+  const institute = await prisma.intitutes.findFirst({
+    where: {
+      institute_email: {
+        equals: requestBody.email
+      }
+    }
+  });
+  if (user || institute) {
     return reply.send(true).status(200);
   } else {
     return reply.send(false).status(200);
   }
 })
 
-// Check Email
+// Get User
 app.post('/users/getuser/', async (request: FastifyRequest, reply: FastifyReply) => {
   const requestBody = request.body as RequestBody;
   const user = await prisma.users.findFirst({
@@ -95,10 +104,12 @@ app.post('/users/getuser/', async (request: FastifyRequest, reply: FastifyReply)
       user_address: true,
       user_attributes: true,
       user_biogender: true,
+      user_typeblood: true,
       user_birth: true,
       user_city: true,
       user_cpf: true,
       user_email: true,
+      user_id: true,
       user_gender: true,
       user_name: true,
       user_uf: true,
@@ -139,18 +150,28 @@ app.get('/institutes/count', async (request: FastifyRequest, reply: FastifyReply
   return reply.send(count);
 })
 
-// Check Email
-app.post('/institutes/checkemail/', async (request: FastifyRequest, reply: FastifyReply) => {
+// Get Institute
+app.post('/institutes/getinstitute/', async (request: FastifyRequest, reply: FastifyReply) => {
   const requestBody = request.body as RequestBody;
   const institute = await prisma.intitutes.findFirst({
     where: {
       institute_email: {
         equals: requestBody.email
       }
+    },
+    select: {
+      institute_address: true,
+      institute_attributes: true,
+      institute_city: true,
+      institute_doc: true,
+      institute_email: true,
+      institute_id: true,
+      institute_name: true,
+      institute_uf: true,
     }
   });
   if (institute) {
-    return reply.send(true).status(200);
+    return reply.send(institute).status(200);
   } else {
     return reply.send(false).status(200);
   }
@@ -196,6 +217,7 @@ app.post('/sendformuser/', async (request: FastifyRequest, reply: FastifyReply) 
       user_name: requestBody.name,
       user_cpf: requestBody.cpf,
       user_email: requestBody.email,
+      user_typeblood: requestBody.typeblood,
       user_uf: requestBody.uf,
       user_city: requestBody.city,
       user_gender: userGender,
@@ -207,6 +229,58 @@ app.post('/sendformuser/', async (request: FastifyRequest, reply: FastifyReply) 
       user_password: hashPass,
     },
   })
+  return reply.status(200).send({ success: true });
+})
+
+app.post('/sendformuser/edit/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  const userGender: Gender = requestBody.gender as Gender;
+  const userBioGender: BioGender = requestBody.biogender as BioGender;
+  
+  const userData = {
+    user_name: requestBody.name,
+    user_cpf: requestBody.cpf,
+    user_email: requestBody.email,
+    user_uf: requestBody.uf,
+    user_city: requestBody.city,
+    user_gender: userGender,
+    user_typeblood: requestBody.typeblood,
+    user_role: 'USER',
+    user_biogender: userBioGender,
+    user_address: requestBody.address,
+    user_birth: new Date(requestBody.birth),
+    user_attributes: JSON.stringify(requestBody.attributes),
+  };
+  
+  let userCreationData: any = { ...userData }; // Modify the type accordingly
+  let passHasChanged = false;
+
+  if (requestBody.password !== "") {
+    const saltRounds = 10;
+    const hashPass = await bcrypt.hash(requestBody.password, saltRounds);
+    userCreationData = { ...userData, user_password: hashPass };
+    passHasChanged = true;
+  }
+  
+  const user = await prisma.users.update({
+    where: {
+      user_id: requestBody.id,
+    },
+    data: userCreationData,
+  })
+
+  return reply.status(200).send({ success: true, passChanged: passHasChanged });
+})
+
+app.post('/sendformuser/delete/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  
+  const user = await prisma.users.delete({
+    where: {
+      user_id: requestBody.id,
+    },
+  })
+
   return reply.status(200).send({ success: true });
 })
 
@@ -234,6 +308,51 @@ app.post('/sendforminstitute/', async (request: FastifyRequest, reply: FastifyRe
   return reply.status(200).send({ success: true });
 })
 
+app.post('/sendforminstitute/edit/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  
+  const instituteData = {
+    institute_name: requestBody.name,
+    institute_doc: requestBody.cpf,
+    institute_email: requestBody.email,
+    institute_uf: requestBody.uf,
+    institute_city: requestBody.city,
+    institute_role: 'INSTITUTE',
+    institute_address: requestBody.address,
+    institute_attributes: JSON.stringify(requestBody.attributes),
+  };
+  
+  let instituteCreationData: any = { ...instituteData }; // Modify the type accordingly
+  let passHasChanged = false;
+
+  if (requestBody.password !== "") {
+    const saltRounds = 10;
+    const hashPass = await bcrypt.hash(requestBody.password, saltRounds);
+    instituteCreationData = { ...instituteData, institute_password: hashPass };
+    passHasChanged = true;
+  }
+  
+  const institute = await prisma.intitutes.update({
+    where: {
+      institute_id: requestBody.id,
+    },
+    data: instituteCreationData,
+  })
+
+  return reply.status(200).send({ success: true, passChanged: passHasChanged });
+})
+
+app.post('/sendforminstitute/delete/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  
+  const institute = await prisma.intitutes.delete({
+    where: {
+      institute_id: requestBody.id,
+    },
+  })
+
+  return reply.status(200).send({ success: true });
+})
 
 // Login
 app.post('/login/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -303,7 +422,7 @@ app.post('/login/', async (request: FastifyRequest, reply: FastifyReply) => {
 app.get('/verify/', async (request: FastifyRequest, reply: FastifyReply) => {
   const token = request.headers.authorization;
   if (!token) {
-    return reply.status(403);
+    return reply.status(200).send({ status: '0' });
   }
   try {
     const data = jwt.verify(token, process.env.SECRET_TOKEN || '') as JwtPayload;
@@ -314,7 +433,6 @@ app.get('/verify/', async (request: FastifyRequest, reply: FastifyReply) => {
   } catch (error) {
     return reply.status(200).send({ status: '0' });
   }
-
 });
 
 

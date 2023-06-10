@@ -10,6 +10,15 @@ import * as Yup from 'yup';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useRouter } from 'next/navigation'
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import ButtonMUI from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
+import { setCookie } from 'cookies-next';
+
+
 
 type IBGEUFResponse = {
   sigla: string;
@@ -44,6 +53,19 @@ export default function FormProfile({ data }: { data: any }) {
   const [selectedUf, setSelectedUf] = useState(data.user_uf);
   const [selectedCity, setSelectedCity] = useState(data.user_city);
   const [isChanged, setChanged] = useState(false);
+
+  const style = {
+    position: 'absolute' as 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: '#333',
+    border: '2px solid #777',
+    boxShadow: 24,
+    p: 4,
+  };
+
   useEffect(() => {
     if (selectedUf === "0") {
       return;
@@ -110,8 +132,10 @@ export default function FormProfile({ data }: { data: any }) {
 
   const checkEmailExists = async (email: string) => {
     try {
-      const response = await axios.post('http://localhost:3333/users/checkemail/', { email });
-      return response.data;
+      if (email != data.user_email) {
+        const response = await axios.post('http://localhost:3333/checkemail/', { email });
+        return response.data;
+      }
     } catch (error) {
       throw new Error('Failed to check email existence');
     }
@@ -135,12 +159,13 @@ export default function FormProfile({ data }: { data: any }) {
       }),
     cpf: Yup.string().required('CPF obrigatório'),
     password: Yup.string()
-      .required('Senha é obrigatória')
-      .min(8, 'Sua senha deve ter pelo menos 8 caracteres')
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-        'Sua senha deve conter uma letra maiuscula, uma letra minuscula, um número, and e um caracter especial'
-      ),
+      .notRequired()
+      .test('password', 'Sua senha deve ter 8 caracteres', (value) => {
+        if (!value || value.length === 0) {
+          return true; // Pass the validation if the field is empty
+        }
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/.test(value) && value.length >= 8;
+      }),
     uf: Yup.string().required('Estado obrigatório').notOneOf(['0'], 'Estado obrigatório'),
     city: Yup.string().required('Cidade obrigatório').notOneOf(['0'], 'Cidade obrigatório'),
     address: Yup.string()
@@ -167,8 +192,9 @@ export default function FormProfile({ data }: { data: any }) {
 
     axios({
       method: 'post',
-      url: 'http://localhost:3333/sendformuser/:id',
+      url: 'http://localhost:3333/sendformuser/edit/',
       data: {
+        id: data.user_id,
         name: valueName,
         email: valueEmail,
         cpf: valueCpf,
@@ -183,8 +209,15 @@ export default function FormProfile({ data }: { data: any }) {
         attributes: inputValues,
       }
     }).then((response) => {
-      const parameterValue = 'success';
-      router.push(`/login?status=${parameterValue}`);
+      if (response.data.passChanged) {
+        const parameterValue = 'changed';
+        router.push(`/login?status=${parameterValue}`);
+      } else {
+        toast("✅ Sua alterações foram salvas!", {
+          theme: "colored",
+        });
+        setChanged(false);
+      }
     })
   };
 
@@ -192,6 +225,10 @@ export default function FormProfile({ data }: { data: any }) {
     const name = event.target.value;
     setValueName(name);
     setValue('name', name);
+
+    if (name !== data.user_name) {
+      setChanged(true);
+    }
   }
 
   function handleEmail(event: ChangeEvent<HTMLInputElement>) {
@@ -208,6 +245,7 @@ export default function FormProfile({ data }: { data: any }) {
     const pass = event.target.value;
     setValuePass(pass);
     setValue('password', pass);
+    setChanged(true);
   }
 
   function handleCpf(event: ChangeEvent<HTMLInputElement>) {
@@ -290,6 +328,22 @@ export default function FormProfile({ data }: { data: any }) {
     }
   }
 
+  function handleDelete() {
+    axios({
+      method: 'post',
+      url: 'http://localhost:3333/sendformuser/delete/',
+      data: {
+        id: data.user_id,
+      }
+    }).then((response) => {
+      if (response.data.success) {
+        setCookie('authorization', '');
+        const parameterValue = 'deleted';
+        router.push(`/login?status=${parameterValue}`);
+      }
+    })
+  }
+
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>(JSON.parse(data.user_attributes));
 
   useEffect(() => {
@@ -304,17 +358,24 @@ export default function FormProfile({ data }: { data: any }) {
         ...prevState,
         [id]: value
       }));
+      setChanged(true);
     } else {
       setInputValues((prevState) => {
         const updatedState = { ...prevState };
         delete updatedState[id];
         return updatedState;
       });
+      setChanged(true);
     }
   };
 
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
   return (
     <div className='bg-white rounded p-6 m-6 text-black'>
+      <ToastContainer />
       <h1 className='text-center mb-4'>Seu perfil</h1>
       <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-3 gap-4'>
         <div>
@@ -505,10 +566,34 @@ export default function FormProfile({ data }: { data: any }) {
         </div>
         <div></div>
         <div></div>
-        <div className='flex justify-end'>
+        <div className='flex justify-end gap-3'>
+          <ButtonMUI onClick={handleOpen} variant="outlined" color="error">
+            Deletar minha conta
+          </ButtonMUI>
           <Button title={'Salvar alterações'} disabled={!isChanged && true} />
         </div>
       </form>
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            Deseja mesmo deletar sua conta?
+          </Typography>
+          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+            Essa ação não pode ser desfeita
+          </Typography>
+          <ButtonMUI onClick={handleDelete} color="error">
+            Deletar minha conta
+          </ButtonMUI>
+          <ButtonMUI onClick={handleClose}>
+            Cancelar
+          </ButtonMUI>
+        </Box>
+      </Modal>
     </div>
   )
 }

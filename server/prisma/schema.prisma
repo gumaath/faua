@@ -17,6 +17,7 @@ model Users {
   user_email       String             @db.VarChar(255)
   user_password    String             @db.VarChar(255)
   user_city        String             @db.VarChar(255)
+  user_typeblood   String             @db.VarChar(3)
   user_uf          String             @db.VarChar(255)
   user_gender      Gender
   user_biogender   BioGender

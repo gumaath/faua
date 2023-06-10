@@ -10,6 +10,15 @@ import * as Yup from 'yup';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useRouter } from 'next/navigation'
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import ButtonMUI from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
+import { setCookie } from 'cookies-next';
+
+
 
 type IBGEUFResponse = {
   sigla: string;
@@ -24,27 +33,33 @@ type TypeBlood = {
   nome: string;
 };
 
-// TODO: fazer
 export default function FormProfileInstitute({ data }: { data: any }) {
   const router = useRouter()
 
-  const [valueName, setValueName] = useState(data.user_name);
-  const [valueEmail, setValueEmail] = useState(data.user_email);
-  const [valueCpf, setValueCpf] = useState(data.user_cpf);
+  const [valueName, setValueName] = useState(data.institute_name);
+  const [valueEmail, setValueEmail] = useState(data.institute_email);
+  const [valueCpf, setValueCpf] = useState(data.institute_doc);
   const [valuePass, setValuePass] = useState("");
-  const [valueAddress, setValueAddress] = useState(data.user_address);
-  const [valueBirth, setValueBirth] = useState(new Date(data.user_birth).toISOString().split("T")[0]);
+  const [valueAddress, setValueAddress] = useState(data.institute_address);
   const [ufs, setUfs] = useState<IBGEUFResponse[]>([]);
   const [cities, setCities] = useState<IBGECITYResponse[]>([]);
-  const [typebloods, setTypeBloods] = useState<TypeBlood[]>([]);;
-  const [selectedTypeblood, setSelectedTypeBlood] = useState(data.user_typeblood);
-  const [biogenders, setBioGenders] = useState<TypeBlood[]>([]);
-  const [selectedBioGender, setSelectedBioGender] = useState(data.user_biogender);
-  const [genders, setGenders] = useState<TypeBlood[]>([]);
-  const [selectedGender, setSelectedGender] = useState(data.user_gender);
-  const [selectedUf, setSelectedUf] = useState(data.user_uf);
-  const [selectedCity, setSelectedCity] = useState(data.user_city);
+  const [selectedUf, setSelectedUf] = useState(data.institute_uf);
+  const [selectedCity, setSelectedCity] = useState(data.institute_city);
   const [isChanged, setChanged] = useState(false);
+  const [isCnpj, setIsCnpj] = useState(false);
+
+  const style = {
+    position: 'absolute' as 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: '#333',
+    border: '2px solid #777',
+    boxShadow: 24,
+    p: 4,
+  };
+
   useEffect(() => {
     if (selectedUf === "0") {
       return;
@@ -67,52 +82,29 @@ export default function FormProfileInstitute({ data }: { data: any }) {
   }, []);
 
   useEffect(() => {
-    const typeBloods = [
-      { sigla: 'O-', nome: 'O-' },
-      { sigla: 'O+', nome: 'O+' },
-      { sigla: 'A-', nome: 'A-' },
-      { sigla: 'A+', nome: 'A+' },
-      { sigla: 'B-', nome: 'B-' },
-      { sigla: 'B+', nome: 'B+' },
-      { sigla: 'AB+', nome: 'AB+' },
-      { sigla: 'AB-', nome: 'AB-' },
-    ]
+    setValue('name', data.institute_name);
+    setValue('email', data.institute_email);
+    setValue('cpf', data.institute_doc);
+    setValue('address', data.institute_address);
+    setValue('uf', data.institute_uf);
+    setValue('city', data.institute_city);
+    setValue('attributes', data.institute_attributes);
 
-    setTypeBloods(typeBloods);
+    const cpfNumbers = data.institute_doc.replace(/\D/g, "");
 
-    const genders = [
-      { sigla: 'FEMALE', nome: 'Feminino' },
-      { sigla: 'MALE', nome: 'Masculino' },
-      { sigla: 'UNDEFINED', nome: 'Prefiro não dizer' },
-    ]
-
-    setGenders(genders);
-
-    const biogenders = [
-      { sigla: 'FEMALE', nome: 'Feminino' },
-      { sigla: 'MALE', nome: 'Masculino' },
-    ]
-
-    setBioGenders(biogenders);
-
-    setValue('name', data.user_name);
-    setValue('email', data.user_email);
-    setValue('cpf', data.user_cpf);
-    setValue('address', data.user_address);
-    setValue('birthdate', data.user_birth);
-    setValue('uf', data.user_uf);
-    setValue('typeblood', data.user_typeblood);
-    setValue('biogender', data.user_biogender);
-    setValue('city', data.user_city);
-    setValue('gender', data.user_gender);
-    setValue('attributes', data.user_attributes);
-
+    if (cpfNumbers.length > 11) {
+      setIsCnpj(true);
+    } else {
+      setIsCnpj(false);
+    }
   }, [])
 
   const checkEmailExists = async (email: string) => {
     try {
-      const response = await axios.post('http://localhost:3333/users/checkemail/', { email });
-      return response.data;
+      if (email != data.institute_email) {
+        const response = await axios.post('http://localhost:3333/checkemail/', { email });
+        return response.data;
+      }
     } catch (error) {
       throw new Error('Failed to check email existence');
     }
@@ -136,21 +128,18 @@ export default function FormProfileInstitute({ data }: { data: any }) {
       }),
     cpf: Yup.string().required('CPF obrigatório'),
     password: Yup.string()
-      .required('Senha é obrigatória')
-      .min(8, 'Sua senha deve ter pelo menos 8 caracteres')
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-        'Sua senha deve conter uma letra maiuscula, uma letra minuscula, um número, and e um caracter especial'
-      ),
+      .notRequired()
+      .test('password', 'Sua senha deve ter 8 caracteres', (value) => {
+        if (!value || value.length === 0) {
+          return true; // Pass the validation if the field is empty
+        }
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/.test(value) && value.length >= 8;
+      }),
     uf: Yup.string().required('Estado obrigatório').notOneOf(['0'], 'Estado obrigatório'),
     city: Yup.string().required('Cidade obrigatório').notOneOf(['0'], 'Cidade obrigatório'),
     address: Yup.string()
       .required('Endereço obrigatório')
       .min(8, 'Seu endereço deve ser maior'),
-    birthdate: Yup.string().required('Data de nascimento obrigatório'),
-    typeblood: Yup.string().required('Tipo sanguíneo obrigatório').notOneOf(['0'], 'Tipo sanguíneo obrigatório'),
-    biogender: Yup.string().required('Sexo biológico obrigatório').notOneOf(['0'], 'Sexo biológico obrigatório'),
-    gender: Yup.string().required('Sexo obrigatório').notOneOf(['0'], 'Sexo obrigatório'),
     attributes: Yup.object().test('at-least-one', 'Selecione pelo menos um atributo', (obj) => {
       return Object.values(obj).some((value) => Boolean(value));
     }),
@@ -168,24 +157,28 @@ export default function FormProfileInstitute({ data }: { data: any }) {
 
     axios({
       method: 'post',
-      url: 'http://localhost:3333/sendformuser/:id',
+      url: 'http://localhost:3333/sendforminstitute/edit/',
       data: {
+        id: data.institute_id,
         name: valueName,
         email: valueEmail,
-        cpf: valueCpf,
+        doc: valueCpf,
         password: valuePass,
         uf: selectedUf,
         city: selectedCity,
         address: valueAddress,
-        birth: valueBirth,
-        typeblood: selectedTypeblood,
-        biogender: selectedBioGender,
-        gender: selectedGender,
         attributes: inputValues,
       }
     }).then((response) => {
-      const parameterValue = 'success';
-      router.push(`/login?status=${parameterValue}`);
+      if (response.data.passChanged) {
+        const parameterValue = 'changed';
+        router.push(`/login?status=${parameterValue}`);
+      } else {
+        toast("✅ Sua alterações foram salvas!", {
+          theme: "colored",
+        });
+        setChanged(false);
+      }
     })
   };
 
@@ -193,6 +186,10 @@ export default function FormProfileInstitute({ data }: { data: any }) {
     const name = event.target.value;
     setValueName(name);
     setValue('name', name);
+
+    if (name !== data.user_name) {
+      setChanged(true);
+    }
   }
 
   function handleEmail(event: ChangeEvent<HTMLInputElement>) {
@@ -209,12 +206,21 @@ export default function FormProfileInstitute({ data }: { data: any }) {
     const pass = event.target.value;
     setValuePass(pass);
     setValue('password', pass);
+    setChanged(true);
   }
 
   function handleCpf(event: ChangeEvent<HTMLInputElement>) {
     const cpf = event.target.value;
     setValueCpf(cpf);
     setValue('cpf', cpf);
+
+    const cpfNumbers = cpf.replace(/\D/g, "");
+
+    if (cpfNumbers.length > 11) {
+      setIsCnpj(true);
+    } else {
+      setIsCnpj(false);
+    }
 
     if (cpf !== data.user_cpf) {
       setChanged(true);
@@ -231,52 +237,12 @@ export default function FormProfileInstitute({ data }: { data: any }) {
     }
   }
 
-  function handleBirth(event: ChangeEvent<HTMLInputElement>) {
-    const birth = event.target.value;
-    setValueBirth(birth);
-    setValue('birthdate', birth);
-
-    if (birth !== data.user_birth) {
-      setChanged(true);
-    }
-  }
-
   function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
     const uf = event.target.value;
     setSelectedUf(uf);
     setValue('uf', uf);
 
     if (uf !== data.user_uf) {
-      setChanged(true);
-    }
-  }
-
-  function handleSelectTypeBlood(event: ChangeEvent<HTMLSelectElement>) {
-    const typeblood = event.target.value;
-    setSelectedTypeBlood(typeblood);
-    setValue('typeblood', typeblood);
-
-    if (typeblood !== data.user_typeblood) {
-      setChanged(true);
-    }
-  }
-
-  function handleSelectBioGender(event: ChangeEvent<HTMLSelectElement>) {
-    const biogender = event.target.value;
-    setSelectedBioGender(biogender);
-    setValue('biogender', biogender);
-
-    if (biogender !== data.user_biogender) {
-      setChanged(true);
-    }
-  }
-
-  function handleSelectGender(event: ChangeEvent<HTMLSelectElement>) {
-    const gender = event.target.value;
-    setSelectedGender(gender);
-    setValue('gender', gender);
-
-    if (gender !== data.user_gender) {
       setChanged(true);
     }
   }
@@ -291,7 +257,23 @@ export default function FormProfileInstitute({ data }: { data: any }) {
     }
   }
 
-  const [inputValues, setInputValues] = useState<{ [key: string]: string }>(JSON.parse(data.user_attributes));
+  function handleDelete() {
+    axios({
+      method: 'post',
+      url: 'http://localhost:3333/sendforminstitute/delete/',
+      data: {
+        id: data.institute_id,
+      }
+    }).then((response) => {
+      if (response.data.success) {
+        setCookie('authorization', '');
+        const parameterValue = 'deleted';
+        router.push(`/login?status=${parameterValue}`);
+      }
+    })
+  }
+
+  const [inputValues, setInputValues] = useState<{ [key: string]: string }>(JSON.parse(data.institute_attributes));
 
   useEffect(() => {
     setValue('attributes', inputValues);
@@ -305,19 +287,26 @@ export default function FormProfileInstitute({ data }: { data: any }) {
         ...prevState,
         [id]: value
       }));
+      setChanged(true);
     } else {
       setInputValues((prevState) => {
         const updatedState = { ...prevState };
         delete updatedState[id];
         return updatedState;
       });
+      setChanged(true);
     }
   };
 
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
   return (
     <div className='bg-white rounded p-6 m-6 text-black'>
-      <h1 className='text-center mb-4'>Seu perfil</h1>
-      <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-3 gap-4'>
+      <ToastContainer />
+      <h1 className='text-center mb-4'>Seu perfil de instituição</h1>
+      <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-2 gap-4'>
         <div>
           <Controller
             name="name"
@@ -356,14 +345,16 @@ export default function FormProfileInstitute({ data }: { data: any }) {
             defaultValue=""
             render={() => (
               <FormInput
-                type={'text'}
-                value={valueCpf}
-                mask={'999.999.999-99'}
-                onChange={handleCpf}
-                error={errors.cpf?.message}
-                label={'CPF'}
-                id={'cpf'}
-                placeholder='Ex: 123.456.789-10' />
+              type={'text'}
+              value={valueCpf}
+              mask={isCnpj ? "99.999.999/9999-99" : "999.999.999-99?"}
+              formatChars={{ "9": "[0-9]", "t": "[0-9\-]", "?": "[0-9 ]" }}
+              maskChar={null}
+              onChange={handleCpf}
+              error={errors.cpf?.message}
+              label={'CPF/CNPJ'}
+              id={'cpf'}
+              placeholder='Ex: 123.456.789-10' />
             )}
           />
           <Controller
@@ -429,87 +420,45 @@ export default function FormProfileInstitute({ data }: { data: any }) {
 
         </div>
         <div>
-          <div className='flex w-full gap-2'>
-            <Controller
-              name="birthdate"
-              control={control}
-              defaultValue=""
-              render={() => (
-                <FormInput
-                  type={'date'}
-                  value={valueBirth}
-                  onChange={handleBirth}
-                  error={errors.birthdate?.message}
-                  label={'Data de Nascimento'}
-                  id={'datebirth'}
-                  width={true} />
-              )}
-            />
-            <Controller
-              name="typeblood"
-              control={control}
-              defaultValue=""
-              render={() => (
-                <FormSelect
-                  value={selectedTypeblood}
-                  onChange={handleSelectTypeBlood}
-                  label={'Tipo sanguíneo'}
-                  error={errors.typeblood?.message}
-                  id={'typeblood'}
-                  width={true}
-                  options={typebloods} />
-              )}
-            />
-          </div>
-          <div className='flex w-full gap-2'>
-            <Controller
-              name="biogender"
-              control={control}
-              defaultValue=""
-              render={() => (
-                <FormSelect
-                  value={selectedBioGender}
-                  onChange={handleSelectBioGender}
-                  error={errors.biogender?.message}
-                  label={'Gênero biológico'}
-                  id={'biogender'}
-                  width={true}
-                  options={biogenders} />
-              )}
-            />
-            <Controller
-              name="gender"
-              control={control}
-              defaultValue=""
-              render={() => (
-                <FormSelect
-                  value={selectedGender}
-                  onChange={handleSelectGender}
-                  error={errors.gender?.message}
-                  label={'Gênero'}
-                  id={'gender'}
-                  width={true}
-                  options={genders} />
-              )}
-            />
-          </div>
-        </div>
-        <div>
           <Controller
             name="attributes"
             control={control}
             defaultValue=""
             render={() => (
-              <AttributesLister error={errors.attributes?.message} onChange={handleChangeAttributes} checkeds={inputValues} type='users' />
+              <AttributesLister error={errors.attributes?.message} onChange={handleChangeAttributes} checkeds={inputValues} type='institutes' />
             )}
           />
         </div>
         <div></div>
         <div></div>
-        <div className='flex justify-end'>
+        <div className='flex justify-end gap-3'>
+          <ButtonMUI onClick={handleOpen} variant="outlined" color="error">
+            Deletar minha conta
+          </ButtonMUI>
           <Button title={'Salvar alterações'} disabled={!isChanged && true} />
         </div>
       </form>
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            Deseja mesmo deletar sua conta?
+          </Typography>
+          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+            Essa ação não pode ser desfeita
+          </Typography>
+          <ButtonMUI onClick={handleDelete} color="error">
+            Deletar minha conta
+          </ButtonMUI>
+          <ButtonMUI onClick={handleClose}>
+            Cancelar
+          </ButtonMUI>
+        </Box>
+      </Modal>
     </div>
   )
 }

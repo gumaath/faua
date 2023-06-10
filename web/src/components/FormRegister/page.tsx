@@ -96,7 +96,7 @@ export default function FormRegister() {
 
   const checkEmailExists = async (email: string) => {
     try {
-      const response = await axios.post('http://localhost:3333/users/checkemail/', { email });
+      const response = await axios.post('http://localhost:3333/checkemail/', { email });
       return response.data;
     } catch (error) {
       throw new Error('Failed to check email existence');
