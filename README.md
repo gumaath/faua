@@ -7,5 +7,5 @@
 - [ ] Criar tela principal usuários (candidatar)
 - [ ] Criar tela principal instituição (ver perfis de voluntários)
 - [X] Criar API para consulta de instituições
-- [ ] Colocar favicon
+- [X] Colocar favicon
 - [ ] Começar projeto mobile
