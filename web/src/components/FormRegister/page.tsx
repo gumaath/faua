@@ -9,6 +9,7 @@ import Button from '../Button/page';
 import * as Yup from 'yup';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useRouter } from 'next/navigation'
 
 type IBGEUFResponse = {
   sigla: string;
@@ -24,6 +25,8 @@ type TypeBlood = {
 };
 
 export default function FormRegister() {
+  const router = useRouter()
+
   const [valueName, setValueName] = useState("");
   const [valueEmail, setValueEmail] = useState("");
   const [valueCpf, setValueCpf] = useState("");
@@ -166,41 +169,42 @@ export default function FormRegister() {
         attributes: inputValues,
       }
     }).then((response) => {
-
+      const parameterValue = 'success';
+      router.push(`/login?status=${parameterValue}`);
     })
   };
 
-  function handleName(event: ChangeEvent<HTMLSelectElement>) {
+  function handleName(event: ChangeEvent<HTMLInputElement>) {
     const name = event.target.value;
     setValueName(name);
     setValue('name', name);
   }
 
-  function handleEmail(event: ChangeEvent<HTMLSelectElement>) {
+  function handleEmail(event: ChangeEvent<HTMLInputElement>) {
     const email = event.target.value;
     setValueEmail(email);
     setValue('email', email);
   }
 
-  function handlePassword(event: ChangeEvent<HTMLSelectElement>) {
+  function handlePassword(event: ChangeEvent<HTMLInputElement>) {
     const pass = event.target.value;
     setValuePass(pass);
     setValue('password', pass);
   }
 
-  function handleCpf(event: ChangeEvent<HTMLSelectElement>) {
+  function handleCpf(event: ChangeEvent<HTMLInputElement>) {
     const cpf = event.target.value;
     setValueCpf(cpf);
     setValue('cpf', cpf);
   }
 
-  function handleAddress(event: ChangeEvent<HTMLSelectElement>) {
+  function handleAddress(event: ChangeEvent<HTMLInputElement>) {
     const address = event.target.value;
     setValueAddress(address);
     setValue('address', address);
   }
 
-  function handleBirth(event: ChangeEvent<HTMLSelectElement>) {
+  function handleBirth(event: ChangeEvent<HTMLInputElement>) {
     const birth = event.target.value;
     setValueBirth(birth);
     setValue('birthdate', birth);
@@ -259,7 +263,6 @@ export default function FormRegister() {
     }
   };
 
-  // TODO: Criar validação
   return (
     <div className='justify-center items-center mt-[15%] bg-white rounded p-6 m-6 text-black'>
       <h1 className='text-center mb-4'>Crie sua conta</h1>

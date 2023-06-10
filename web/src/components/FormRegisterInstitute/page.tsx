@@ -9,6 +9,7 @@ import Button from '../Button/page';
 import * as Yup from 'yup';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useRouter } from 'next/navigation'
 
 type IBGEUFResponse = {
   sigla: string;
@@ -20,6 +21,8 @@ type IBGECITYResponse = {
 };
 
 export default function FormRegisterInstitute() {
+  const router = useRouter()
+  
   const [valueName, setValueName] = useState("");
   const [valueDesc, setValueDesc] = useState("");
   const [valueEmail, setValueEmail] = useState("");
@@ -31,6 +34,8 @@ export default function FormRegisterInstitute() {
   const [selectedUf, setSelectedUf] = useState("0");
   const [selectedCity, setSelectedCity] = useState("0");
   const [isCnpj, setIsCnpj] = useState(false);
+  const [segments, setSegments] = useState([]);
+  const [valueSegment, setSegment] = useState("");
 
   useEffect(() => {
     if (selectedUf === "0") {
@@ -52,6 +57,20 @@ export default function FormRegisterInstitute() {
         setUfs(response.data);
       });
   }, []);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:3333/institutes/segments")
+      .then((response) => {
+        const data = response.data;
+        const segments = data.map(({ segment_id, segment_name }: { segment_id: number; segment_name: string }) => ({
+          sigla: segment_id,
+          nome: segment_name,
+        }));
+        setSegments(segments);
+      });
+  }, []);
+
 
   const checkEmailExists = async (email: string) => {
     try {
@@ -78,6 +97,9 @@ export default function FormRegisterInstitute() {
           return true; // Proceed with validation if there's an error in checking email existence
         }
       }),
+    desc: Yup.string()
+      .required('Descrição obrigatória')
+      .min(8, 'Sua descrição deve ser maior'),
     cpf: Yup.string().required('CPF obrigatório'),
     password: Yup.string()
       .required('Senha é obrigatória')
@@ -94,6 +116,7 @@ export default function FormRegisterInstitute() {
     attributes: Yup.object().test('at-least-one', 'Selecione pelo menos um atributo', (obj) => {
       return Object.values(obj).some((value) => Boolean(value));
     }),
+    segment: Yup.string().required('Segmento obrigatório').notOneOf(['0'], 'Segmento obrigatório'),
   });
 
   const { register, handleSubmit, control, formState, setValue } = useForm({
@@ -105,22 +128,25 @@ export default function FormRegisterInstitute() {
   const onSubmit: SubmitHandler<any> = async (
     e: React.FormEvent<HTMLFormElement>
   ): Promise<void> => {
-
+    
     axios({
       method: 'post',
-      url: 'http://localhost:3333/sendformuser/',
+      url: 'http://localhost:3333/sendforminstitute/',
       data: {
         name: valueName,
         email: valueEmail,
         cpf: valueCpf,
         password: valuePass,
+        desc: valueDesc,
+        segment: parseInt(valueSegment),
         uf: selectedUf,
         city: selectedCity,
         address: valueAddress,
         attributes: inputValues,
       }
     }).then((response) => {
-
+      const parameterValue = 'success';
+      router.push(`/login?status=${parameterValue}`);
     })
   };
 
@@ -133,6 +159,7 @@ export default function FormRegisterInstitute() {
   function handleDesc(event: ChangeEvent<HTMLSelectElement>) {
     const desc = event.target.value;
     setValueDesc(desc);
+    setValue('desc', desc);
   }
 
   function handleEmail(event: ChangeEvent<HTMLSelectElement>) {
@@ -154,9 +181,6 @@ export default function FormRegisterInstitute() {
 
     const cpfNumbers = cpf.replace(/\D/g, "");
 
-    console.log(cpfNumbers.length);
-    
-    
     if (cpfNumbers.length > 11) {
       setIsCnpj(true);
     } else {
@@ -182,6 +206,12 @@ export default function FormRegisterInstitute() {
     setValue('city', city);
   }
 
+  function handleSegment(event: ChangeEvent<HTMLSelectElement>) {
+    const segment = event.target.value;
+    setSegment(segment);
+    setValue('segment', segment);
+  }
+
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -205,7 +235,6 @@ export default function FormRegisterInstitute() {
     }
   };
 
-  // TODO: Criar validação
   return (
     <div className='justify-center items-center mt-[15%] bg-white rounded p-6 m-6 text-black'>
       <h1 className='text-center mb-4'>Crie sua conta</h1>
@@ -251,13 +280,43 @@ export default function FormRegisterInstitute() {
                 type={'text'}
                 value={valueCpf}
                 mask={isCnpj ? "99.999.999/9999-99" : "999.999.999-99?"}
-                formatChars={{"9": "[0-9]", "t": "[0-9\-]", "?": "[0-9 ]"}} 
-                maskChar={null} 
+                formatChars={{ "9": "[0-9]", "t": "[0-9\-]", "?": "[0-9 ]" }}
+                maskChar={null}
                 onChange={handleCpf}
                 error={errors.cpf?.message}
                 label={'CPF/CNPJ'}
                 id={'cpf'}
                 placeholder='Ex: 123.456.789-10' />
+            )}
+          />
+          <Controller
+            name="desc"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormInput
+                type={'text'}
+                value={valueDesc}
+                onChange={handleDesc}
+                error={errors.desc?.message}
+                label={'Descrição da instituição'}
+                id={'desc'}
+                placeholder='Descreva a instituição'
+              />
+            )}
+          />
+          <Controller
+            name="segment"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormSelect
+                value={valueSegment}
+                onChange={handleSegment}
+                error={errors.segment?.message}
+                label={'Segmento'}
+                id={'segment'}
+                options={segments} />
             )}
           />
           <Controller

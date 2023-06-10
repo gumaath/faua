@@ -10,6 +10,8 @@ interface RequestBody {
   cpf: string;
   email: string;
   gender: string;
+  uf: string;
+  city: string;
   biogender: string;
   role: string;
   address: string;
@@ -19,8 +21,11 @@ interface RequestBody {
 }
 
 interface RequestBodyInstitute {
+  segment: number;
   name: string;
   cpf: string;
+  uf: string;
+  city: string;
   email: string;
   desc: string;
   role: string;
@@ -142,6 +147,12 @@ app.get('/institutes/attributes/count', async (request: FastifyRequest, reply: F
   return reply.send(count);
 })
 
+// Segments
+app.get('/institutes/segments', async (request: FastifyRequest, reply: FastifyReply) => {
+  const segments = await prisma.segments.findMany()
+  return reply.send(segments);
+})
+
 // Send Form User
 app.post('/sendformuser/', async (request: FastifyRequest, reply: FastifyReply) => {
   const requestBody = request.body as RequestBody;
@@ -156,6 +167,8 @@ app.post('/sendformuser/', async (request: FastifyRequest, reply: FastifyReply) 
       user_name: requestBody.name,
       user_cpf: requestBody.cpf,
       user_email: requestBody.email,
+      user_uf: requestBody.uf,
+      user_city: requestBody.city,
       user_gender: userGender,
       user_role: 'USER',
       user_biogender: userBioGender,
@@ -168,7 +181,6 @@ app.post('/sendformuser/', async (request: FastifyRequest, reply: FastifyReply) 
   return reply.status(200).send({ success: true });
 })
 
-// TODO: fazer isso aqui funcionar e criar formselect no front dos segmentos para funcionar
 // Send Form Institute
 app.post('/sendforminstitute/', async (request: FastifyRequest, reply: FastifyReply) => {
   const requestBody = request.body as RequestBodyInstitute;
@@ -181,7 +193,10 @@ app.post('/sendforminstitute/', async (request: FastifyRequest, reply: FastifyRe
       institute_doc: requestBody.cpf,
       institute_desc: requestBody.desc,
       institute_email: requestBody.email,
+      institute_uf: requestBody.uf,
+      institute_city: requestBody.city,
       institute_role: 'INSTITUTE',
+      institute_segment: requestBody.segment,
       institute_address: requestBody.address,
       institute_attributes: JSON.stringify(requestBody.attributes),
       institute_password: hashPass,
@@ -193,54 +208,83 @@ app.post('/sendforminstitute/', async (request: FastifyRequest, reply: FastifyRe
 
 // Login
 app.post('/login/', async (request: FastifyRequest, reply: FastifyReply) => {
+
   const requestBody = request.body as RequestBody;
 
-  const user = await prisma.users.findFirst({
+  let user = await prisma.users.findFirst({
     where: {
       user_email: {
-        contains: requestBody.email
+        equals: requestBody.email
       }
     }
   });
 
-  if (user) {
-    const isValidPass = await bcrypt.compare(requestBody.password || '', user.user_password);
-    
-    if (isValidPass) {
+  if (!user) {
+    let institute = await prisma.intitutes.findFirst({
+      where: {
+        institute_email: {
+          contains: requestBody.email
+        }
+      }
+    });
+    if (institute) {
+      const isValidPass = await bcrypt.compare(requestBody.password || '', institute.institute_password);
 
-      const tokenPayload = {
-        email: user.user_email,
-        role: user.user_role
-      };
-      const accessToken = jwt.sign(tokenPayload, process.env.SECRET_TOKEN || '');
-      
-      reply.status(201).send({
+      if (isValidPass) {
+
+        const tokenPayload = {
+          email: institute.institute_email,
+          role: institute.institute_role
+        };
+        const accessToken = jwt.sign(tokenPayload, process.env.SECRET_TOKEN || '');
+
+        reply.status(201).send({
           status: 'success',
           token: accessToken,
         });
+      } else {
+        return reply.status(200).send({ success: false });
+      }
+    }
+  } else {
+    if (user) {
+      const isValidPass = await bcrypt.compare(requestBody.password || '', user.user_password);
+
+      if (isValidPass) {
+
+        const tokenPayload = {
+          email: user.user_email,
+          role: user.user_role
+        };
+        const accessToken = jwt.sign(tokenPayload, process.env.SECRET_TOKEN || '');
+
+        reply.status(201).send({
+          status: 'success',
+          token: accessToken,
+        });
+      } else {
+        return reply.status(200).send({ success: false });
+      }
     } else {
       return reply.status(200).send({ success: false });
     }
-  } else {
-    return reply.status(200).send({ success: false });
-  }
-
+  } 
 });
 
 app.get('/verify/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const token = request.headers.authorization;
-    if (!token) {
-      return reply.status(403);
+  const token = request.headers.authorization;
+  if (!token) {
+    return reply.status(403);
+  }
+  try {
+    const data = jwt.verify(token, process.env.SECRET_TOKEN || '') as JwtPayload;
+    if (data) {
+      const response = { email: data.email, role: data.role, status: '1' };
+      return reply.status(200).send(response);
     }
-    try {
-      const data = jwt.verify(token, process.env.SECRET_TOKEN || '') as JwtPayload;
-      if (data) {
-        const response = {email: data.email, role: data.role, status: '1' };
-        return reply.status(200).send(response);
-      }
-    } catch (error) {
-      return reply.status(200).send({ status: '0'});
-    }
+  } catch (error) {
+    return reply.status(200).send({ status: '0' });
+  }
 
 });
 

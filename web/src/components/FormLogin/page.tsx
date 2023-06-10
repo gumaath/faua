@@ -47,14 +47,15 @@ export default function FormLogin() {
     })
   };
 
+  // TODO: fazer validacao
   return (
     <div className='flex justify-center items-center mt-[15%]'>
       <div className='bg-white rounded p-6 m-6 text-black'>
         <h2 className='text-center mb-2'>Faça login</h2>
         <form action="" onSubmit={handleSubmit}>
           <div className='mb-10'>
-            <FormInput value={valueEmail} onChange={handleEmail} type="text" label="E-mail" name="email" id="email" />
-            <FormInput value={valuePass} onChange={handlePassword} type="password" label="Senha" name="senha" id="senha" />
+            <FormInput value={valueEmail} onChange={handleEmail} type="text" label="E-mail" id="email" />
+            <FormInput value={valuePass} onChange={handlePassword} type="password" label="Senha" id="senha" />
           </div>
           <div className='flex justify-center mb-4'>
             <Button title="Entrar" />

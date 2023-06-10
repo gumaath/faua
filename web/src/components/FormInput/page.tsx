@@ -36,7 +36,7 @@ export default function FormInput({
       </label>
       <InputMask
         mask={mask || ''}
-        formatChars={formatChars || ''}
+        formatChars={formatChars}
         maskChar={maskChar || ''}
         className={`rounded-md outline-none text-black bg-zinc-100 py-2 px-3 ${
           width ? 'min-w-full' : 'min-w-[260px]'
