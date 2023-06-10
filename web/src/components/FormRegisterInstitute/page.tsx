@@ -1,11 +1,14 @@
 'use client'
 
-import FormInput from '../FormInput/page';
+import FormInput from "../FormInput/page";
 import axios from "axios";
 import { ChangeEvent, useEffect, useState } from "react";
 import FormSelect from '../FormSelect/page';
 import AttributesLister from '../AttributesLister/page';
 import Button from '../Button/page';
+import * as Yup from 'yup';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 
 type IBGEUFResponse = {
   sigla: string;
@@ -27,6 +30,8 @@ export default function FormRegisterInstitute() {
   const [cities, setCities] = useState<IBGECITYResponse[]>([]);
   const [selectedUf, setSelectedUf] = useState("0");
   const [selectedCity, setSelectedCity] = useState("0");
+  const [isCnpj, setIsCnpj] = useState(false);
+
   useEffect(() => {
     if (selectedUf === "0") {
       return;
@@ -48,11 +53,59 @@ export default function FormRegisterInstitute() {
       });
   }, []);
 
-  const handleSubmit = async (
+  const checkEmailExists = async (email: string) => {
+    try {
+      const response = await axios.post('http://localhost:3333/users/checkemail/', { email });
+      return response.data;
+    } catch (error) {
+      throw new Error('Failed to check email existence');
+    }
+  };
+
+  const validationSchema = Yup.object().shape({
+    name: Yup.string().required('Nome obrigatório'),
+    email: Yup.string()
+      .email('E-mail inválido')
+      .required('E-mail obrigatório')
+      .test('email-async-validation', 'O email já está cadastrado', async function (value) {
+        try {
+          const isEmailExists = await checkEmailExists(value);
+          if (isEmailExists) {
+            return false; // Email already exists, validation fails
+          }
+          return true; // Email doesn't exist, validation passes
+        } catch (error) {
+          return true; // Proceed with validation if there's an error in checking email existence
+        }
+      }),
+    cpf: Yup.string().required('CPF obrigatório'),
+    password: Yup.string()
+      .required('Senha é obrigatória')
+      .min(8, 'Sua senha deve ter pelo menos 8 caracteres')
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+        'Sua senha deve conter uma letra maiuscula, uma letra minuscula, um número, and e um caracter especial'
+      ),
+    uf: Yup.string().required('Estado obrigatório').notOneOf(['0'], 'Estado obrigatório'),
+    city: Yup.string().required('Cidade obrigatório').notOneOf(['0'], 'Cidade obrigatório'),
+    address: Yup.string()
+      .required('Endereço obrigatório')
+      .min(8, 'Seu endereço deve ser maior'),
+    attributes: Yup.object().test('at-least-one', 'Selecione pelo menos um atributo', (obj) => {
+      return Object.values(obj).some((value) => Boolean(value));
+    }),
+  });
+
+  const { register, handleSubmit, control, formState, setValue } = useForm({
+    resolver: yupResolver(validationSchema),
+  });
+
+  const { errors } = formState;
+
+  const onSubmit: SubmitHandler<any> = async (
     e: React.FormEvent<HTMLFormElement>
   ): Promise<void> => {
-    e.preventDefault();
-    
+
     axios({
       method: 'post',
       url: 'http://localhost:3333/sendformuser/',
@@ -67,13 +120,14 @@ export default function FormRegisterInstitute() {
         attributes: inputValues,
       }
     }).then((response) => {
-     
+
     })
   };
 
   function handleName(event: ChangeEvent<HTMLSelectElement>) {
     const name = event.target.value;
     setValueName(name);
+    setValue('name', name);
   }
 
   function handleDesc(event: ChangeEvent<HTMLSelectElement>) {
@@ -84,38 +138,59 @@ export default function FormRegisterInstitute() {
   function handleEmail(event: ChangeEvent<HTMLSelectElement>) {
     const email = event.target.value;
     setValueEmail(email);
+    setValue('email', email);
   }
 
   function handlePassword(event: ChangeEvent<HTMLSelectElement>) {
     const pass = event.target.value;
     setValuePass(pass);
+    setValue('password', pass);
   }
 
   function handleCpf(event: ChangeEvent<HTMLSelectElement>) {
     const cpf = event.target.value;
     setValueCpf(cpf);
+    setValue('cpf', cpf);
+
+    const cpfNumbers = cpf.replace(/\D/g, "");
+
+    console.log(cpfNumbers.length);
+    
+    
+    if (cpfNumbers.length > 11) {
+      setIsCnpj(true);
+    } else {
+      setIsCnpj(false);
+    }
   }
 
   function handleAddress(event: ChangeEvent<HTMLSelectElement>) {
     const address = event.target.value;
     setValueAddress(address);
+    setValue('address', address);
   }
 
   function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
     const uf = event.target.value;
     setSelectedUf(uf);
+    setValue('uf', uf);
   }
 
   function handleSelectCity(event: ChangeEvent<HTMLSelectElement>) {
     const city = event.target.value;
     setSelectedCity(city);
+    setValue('city', city);
   }
 
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({});
 
+  useEffect(() => {
+    setValue('attributes', inputValues);
+  }, [inputValues]);
+
   const handleChangeAttributes = (event: ChangeEvent<HTMLInputElement>) => {
     const { id, value, checked } = event.target;
-  
+
     if (checked) {
       setInputValues((prevState) => ({
         ...prevState,
@@ -134,21 +209,128 @@ export default function FormRegisterInstitute() {
   return (
     <div className='justify-center items-center mt-[15%] bg-white rounded p-6 m-6 text-black'>
       <h1 className='text-center mb-4'>Crie sua conta</h1>
-      <form method='post' onSubmit={handleSubmit} className='grid grid-cols-2 gap-4'>
+      <form method='post' noValidate onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-2 gap-4'>
         <div>
-          <FormInput type={'text'} value={valueName} onChange={handleName} label={'Nome da instituição'} name={'name'} id={'name'} placeholder='Ex: João da Silva' />
-          <FormInput type={'text'} value={valueDesc} onChange={handleDesc} label={'Descrição da instituição'} name={'desc'} id={'desc'} placeholder='Fale um pouco da instituição' />
-          <FormInput type={'email'} value={valueEmail} onChange={handleEmail} label={'Endereço de e-mail'} name={'email'} id={'email'} placeholder='Ex: seufulano@email.com' />
-          <FormInput type={'cpf'} value={valueCpf} onChange={handleCpf} label={'CPF/CNPJ'} name={'cpf'} id={'cpf'} placeholder='Ex: 123.456.789-10' />
-          <FormInput type={'password'} value={valuePass} onChange={handlePassword} label={'Senha'} name={'password'} id={'password'} placeholder='Senha' />
+          <Controller
+            name="name"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormInput
+                type={'text'}
+                value={valueName}
+                onChange={handleName}
+                error={errors.name?.message}
+                label={'Nome da instituição'}
+                id={'name'}
+                placeholder='Ex: João da Silva'
+              />
+            )}
+          />
+          <Controller
+            name="email"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormInput
+                type={'email'}
+                value={valueEmail}
+                onChange={handleEmail}
+                error={errors.email?.message}
+                label={'Endereço de e-mail'}
+                id={'email'}
+                placeholder='Ex: seufulano@email.com' />
+            )}
+          />
+          <Controller
+            name="cpf"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormInput
+                type={'text'}
+                value={valueCpf}
+                mask={isCnpj ? "99.999.999/9999-99" : "999.999.999-99?"}
+                formatChars={{"9": "[0-9]", "t": "[0-9\-]", "?": "[0-9 ]"}} 
+                maskChar={null} 
+                onChange={handleCpf}
+                error={errors.cpf?.message}
+                label={'CPF/CNPJ'}
+                id={'cpf'}
+                placeholder='Ex: 123.456.789-10' />
+            )}
+          />
+          <Controller
+            name="password"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormInput type={'password'}
+                value={valuePass}
+                onChange={handlePassword}
+                error={errors.password?.message}
+                label={'Senha'}
+                id={'password'}
+                placeholder='Senha' />
+            )}
+          />
           <div className='flex w-full gap-2'>
-            <FormSelect value={selectedUf} onChange={handleSelectUf} label={'Estado'} name={'uf'} id={'uf'} width={true} options={ufs} />
-            <FormSelect value={selectedCity} onChange={handleSelectCity} label={'Cidade'} name={'city'} id={'city'} width={true} options={cities} />
+            <Controller
+              name="uf"
+              control={control}
+              defaultValue=""
+              render={() => (
+                <FormSelect
+                  value={selectedUf}
+                  onChange={handleSelectUf}
+                  error={errors.uf?.message}
+                  label={'Estado'}
+                  id={'uf'}
+                  width={true}
+                  options={ufs} />
+              )}
+            />
+            <Controller
+              name="city"
+              control={control}
+              defaultValue=""
+              render={() => (
+                <FormSelect
+                  value={selectedCity}
+                  onChange={handleSelectCity}
+                  error={errors.city?.message}
+                  label={'Cidade'}
+                  id={'city'}
+                  width={true}
+                  options={cities} />
+              )}
+            />
           </div>
-          <FormInput type={'text'} label={'Endereço'} value={valueAddress} onChange={handleAddress} name={'name'} id={'name'} placeholder='R. Flor das Rosas, 123' />
+          <Controller
+            name="address"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <FormInput type={'text'}
+                label={'Endereço da instituição'}
+                value={valueAddress}
+                onChange={handleAddress}
+                error={errors.address?.message}
+                id={'address'}
+                placeholder='R. Flor das Rosas, 123' />
+            )}
+          />
+
         </div>
         <div>
-          <AttributesLister onChange={handleChangeAttributes} checkeds={inputValues} type='institutes' />
+          <Controller
+            name="attributes"
+            control={control}
+            defaultValue=""
+            render={() => (
+              <AttributesLister error={errors.attributes?.message} onChange={handleChangeAttributes} checkeds={inputValues} type='institutes' />
+            )}
+          />
         </div>
         <div></div>
         <div className='flex justify-end'><Button title={'Cadastrar'} /></div>

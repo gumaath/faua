@@ -8,7 +8,7 @@ interface Attribute {
   second_person_text: string
 }
 
-export default function AttributesLister({ type, onChange, checkeds }: { type: string, onChange: ChangeEventHandler, checkeds: { [key: string]: string } }) {
+export default function AttributesLister({ type, onChange, checkeds, error }: { type: string, onChange: ChangeEventHandler, checkeds: { [key: string]: string }, error: any }) {
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [pageNumber, setPageNumber] = useState(0);
   const [isCounted, setIsCounted] = useState(false);
@@ -63,6 +63,7 @@ export default function AttributesLister({ type, onChange, checkeds }: { type: s
           <button type="button" className="underline" onClick={handleNextClick}>Próxima &gt;</button>
         </div>
       </div>
+      {error && <span className='text-xs text-red-700'>✗ {error}</span>}
     </div>
   );
 }

@@ -60,6 +60,23 @@ app.get('/users/count', async (request: FastifyRequest, reply: FastifyReply) => 
   return reply.send(count);
 })
 
+// Check Email
+app.post('/users/checkemail/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  const user = await prisma.users.findFirst({
+    where: {
+      user_email: {
+        equals: requestBody.email
+      }
+    }
+  });
+  if (user) {
+    return reply.send(true).status(200);
+  } else {
+    return reply.send(false).status(200);
+  }
+})
+
 // Attributes
 app.get('/users/attributes', async (request: FastifyRequest, reply: FastifyReply) => {
   const attributes = await prisma.usersAttributes.findMany()
@@ -86,6 +103,23 @@ app.get('/users/attributes/count', async (request: FastifyRequest, reply: Fastif
 app.get('/institutes/count', async (request: FastifyRequest, reply: FastifyReply) => {
   const count = await prisma.intitutes.count()
   return reply.send(count);
+})
+
+// Check Email
+app.post('/institutes/checkemail/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  const institute = await prisma.intitutes.findFirst({
+    where: {
+      institute_email: {
+        equals: requestBody.email
+      }
+    }
+  });
+  if (institute) {
+    return reply.send(true).status(200);
+  } else {
+    return reply.send(false).status(200);
+  }
 })
 
 // Attributes
