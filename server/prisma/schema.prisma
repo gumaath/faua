@@ -86,6 +86,7 @@ model InstituteAttributes {
   attribute_name     String @unique
   first_person_text  String
   second_person_text String
+  short_text         String @default("")
 }
 
 model UsersAttributes {

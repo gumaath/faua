@@ -6,6 +6,8 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import dotenv from 'dotenv'
 
 interface RequestBody {
+  userId?: any;
+  instituteId?: any;
   typeblood: any;
   id?: string;
   name: string;
@@ -177,6 +179,16 @@ app.post('/institutes/getinstitute/', async (request: FastifyRequest, reply: Fas
   }
 })
 
+
+app.get('/institutes/getinstitutes/:page', async (request: FastifyRequest, reply: FastifyReply) => {
+  const { page } = request.params as { page: string };
+  const institutes = await prisma.intitutes.findMany({
+    skip: parseInt(page) * 10,
+    take: 10,
+  })
+  return reply.send(institutes);
+})
+
 // Attributes
 app.get('/institutes/attributes', async (request: FastifyRequest, reply: FastifyReply) => {
   const attributes = await prisma.instituteAttributes.findMany()
@@ -197,10 +209,64 @@ app.get('/institutes/attributes/count', async (request: FastifyRequest, reply: F
   return reply.send(count);
 })
 
+app.get('/institutes/segments/getsegmentname/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id } = request.params as { id: string };
+  const segment = await prisma.segments.findFirst({
+    where: {
+      segment_id: {
+        equals: parseInt(id)
+      }
+    }
+  })
+  return reply.send(segment);
+})
+
+app.get('/institutes/attributes/getattributes/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id } = request.params as { id: string };
+
+  const institute = await prisma.intitutes.findFirst({
+    where: {
+      institute_id: {
+        equals: id
+      }
+    }
+  });
+  
+  let attributes_institute: number[] = [];
+  if (institute?.institute_attributes) {
+    const parsedAttributes = JSON.parse(institute.institute_attributes);
+    attributes_institute = Object.values(parsedAttributes);
+    attributes_institute = attributes_institute.map((value: any) => parseInt(value));
+  }
+
+  const attributes = await prisma.instituteAttributes.findMany({
+    where: {
+      attribute_id: {
+        in: attributes_institute
+      }
+    }
+  })
+  return reply.send(attributes);
+})
+
 // Segments
 app.get('/institutes/segments', async (request: FastifyRequest, reply: FastifyReply) => {
   const segments = await prisma.segments.findMany()
   return reply.send(segments);
+})
+
+app.post('/institutes/getcandidates/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  
+  const candidates = await prisma.institutes_Users.findMany({
+    where: {
+      instituteId: {
+        equals: requestBody.instituteId,
+      }
+    },
+  })
+
+  return reply.status(200).send(candidates);
 })
 
 // Send Form User
@@ -282,6 +348,33 @@ app.post('/sendformuser/delete/', async (request: FastifyRequest, reply: Fastify
   })
 
   return reply.status(200).send({ success: true });
+})
+
+app.post('/users/candidate/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  
+  const user = await prisma.institutes_Users.create({
+    data: {
+      userId: requestBody.userId,
+      instituteId: requestBody.instituteId,
+    },
+  })
+
+  return reply.status(200).send({ success: true });
+})
+
+app.post('/users/getcandidates/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  
+  const candidates = await prisma.institutes_Users.findMany({
+    where: {
+      userId: {
+        equals: requestBody.userId,
+      }
+    },
+  })
+
+  return reply.status(200).send(candidates);
 })
 
 // Send Form Institute

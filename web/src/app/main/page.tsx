@@ -6,6 +6,7 @@ import Footer from "@/components/Footer/page";
 import axios from "axios";
 import { getCookie } from 'cookies-next';
 import { useRouter } from 'next/navigation'
+import CardLister from "@/components/CardLister/page";
 
 export default function Main() {
   const router = useRouter()
@@ -37,7 +38,7 @@ export default function Main() {
     <div>
       <div className="min-h-screen select-text">
         <Header />
-        <div>{userData !== null && isFetched ? userData.email : "Loading..."}</div>
+        <div>{userData !== null && isFetched ? <CardLister/> : "Loading..."}</div>
       </div>
       <Footer />
     </div>
