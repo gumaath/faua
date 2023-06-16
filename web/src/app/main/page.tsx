@@ -12,7 +12,7 @@ import CardListerVolunteer from "@/components/CardListerVolunteer/page";
 export default function Main() {
   const router = useRouter()
 
-  const [userData, setUserData] = useState<{ email: string } | null>(null);
+  const [userData, setUserData] = useState<{ email: string, role: string } | null>(null);
   const [isFetched, setIsFetched] = useState(false); 
   const token = getCookie('authorization');
 
@@ -39,7 +39,8 @@ export default function Main() {
     <div>
       <div className="min-h-screen select-text">
         <Header />
-        <div>{userData !== null && isFetched ? <CardListerVolunteer/> : "Loading..."}</div>
+        <div>{userData !== null && isFetched && userData.role == 'USER' ? <CardLister/> : ''}</div>
+        <div>{userData !== null && isFetched && userData.role == 'INSTITUTE' ? <CardListerVolunteer/>:''}</div>
       </div>
       <Footer />
     </div>
