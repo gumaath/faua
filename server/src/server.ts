@@ -93,13 +93,43 @@ app.post('/checkemail/', async (request: FastifyRequest, reply: FastifyReply) =>
   }
 })
 
-// Get User
+// Get User By Email
 app.post('/users/getuser/', async (request: FastifyRequest, reply: FastifyReply) => {
   const requestBody = request.body as RequestBody;
   const user = await prisma.users.findFirst({
     where: {
       user_email: {
         equals: requestBody.email
+      }
+    },
+    select: {
+      user_address: true,
+      user_attributes: true,
+      user_biogender: true,
+      user_typeblood: true,
+      user_birth: true,
+      user_city: true,
+      user_cpf: true,
+      user_email: true,
+      user_id: true,
+      user_gender: true,
+      user_name: true,
+      user_uf: true,
+    }
+  });
+  if (user) {
+    return reply.send(user).status(200);
+  } else {
+    return reply.send(false).status(200);
+  }
+})
+
+app.post('/users/getuserbyid/', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  const user = await prisma.users.findFirst({
+    where: {
+      user_id: {
+        equals: requestBody.userId
       }
     },
     select: {
@@ -142,6 +172,61 @@ app.get('/users/attributes/:page', async (request: FastifyRequest, reply: Fastif
 app.get('/users/attributes/count', async (request: FastifyRequest, reply: FastifyReply) => {
   const count = await prisma.usersAttributes.count()
   return reply.send(count);
+})
+
+app.post('/users/getuserscandidates/:page', async (request: FastifyRequest, reply: FastifyReply) => {
+  const { page } = request.params as { page: string };
+  const requestBody = request.body as RequestBody;
+  const users = await prisma.institutes_Users.findMany({
+    skip: parseInt(page) * 10,
+    take: 10,
+    where: {
+      instituteId: {
+        equals: requestBody.instituteId
+      }
+    }
+  })
+  return reply.send(users);
+})
+
+app.post('/users/getuserscandidates/count', async (request: FastifyRequest, reply: FastifyReply) => {
+  const requestBody = request.body as RequestBody;
+  const users = await prisma.institutes_Users.count({
+    where: {
+      instituteId: {
+        equals: requestBody.instituteId
+      }
+    }
+  })
+  return reply.send(users);
+})
+
+app.get('/users/attributes/getattributes/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id } = request.params as { id: string };
+
+  const user = await prisma.users.findFirst({
+    where: {
+      user_id: {
+        equals: id
+      }
+    }
+  });
+
+  let attributes_user: number[] = [];
+  if (user?.user_attributes) {
+    const parsedAttributes = JSON.parse(user.user_attributes);
+    attributes_user = Object.values(parsedAttributes);
+    attributes_user = attributes_user.map((value: any) => parseInt(value));
+  }
+
+  const attributes = await prisma.usersAttributes.findMany({
+    where: {
+      attribute_id: {
+        in: attributes_user
+      }
+    }
+  })
+  return reply.send(attributes);
 })
 
 // Institutes

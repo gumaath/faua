@@ -9,7 +9,7 @@
 - [X] Criar páginas de apoio
 - [X] Começar projeto mobile
 - [X] Criar tela principal usuários (candidatar)
-- [ ] Criar tela principal instituição (ver perfis de voluntários)
-- [ ] Fazer vídeo de apresentação
+- [X] Criar tela principal instituição (ver perfis de voluntários)
 - [X] Finalizar mobile
-- [ ] Finalizar web
+- [X] Finalizar web
+- [ ] Fazer vídeo de apresentação
